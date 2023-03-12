@@ -1,35 +1,94 @@
-'use client';
+"use client";
 
-import { FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  autocomplete,
+  cleanText,
+  autocompleteParameters,
+  shouldRunAI,
+} from "./ai";
 
 function Home() {
-  async function query(data: any) {
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/EleutherAI/gpt-j-6B",
-      {
-        headers: { Authorization: "Bearer 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" },
-        method: "POST",
-        body: JSON.stringify(data),
-      }
-    );
-    const result = await response.json();
-    return result;
-  }
+  const editorRef = useRef<HTMLParagraphElement>(null);
+  const [autocompleteIsPendingApproval, setAutocompleteIsPendingApproval] =
+    useState(false);
 
-  function textEntryHandler(event: any) {
-    let text: string = event.target.innerHTML;
-    text = text.replace(/(?:&nbsp;|<br>)/g,' ');
-    if (text.endsWith(" ")) {
-      console.log("Sending to the AI!")
-      query({"inputs": text, "parameters": {"return_full_text": false, "use_cache": false, "max_new_tokens": 5}}).then((response) => {
-        console.log(response[0]["generated_text"]);
+  function keyDownHandler(event: any) {
+    if (event.key === "Tab") {
+      event.preventDefault();
+
+      let cursorOffset = document.getSelection()?.anchorOffset!;
+
+      if (!shouldRunAI(event.target.innerText)) return;
+
+      autocomplete({
+        inputs: cleanText(event.target.innerText),
+        parameters: autocompleteParameters,
+      }).then((result) => {
+        let resultText: string = result[0]["generated_text"];
+        resultText = cleanText(resultText);
+        event.target.innerText += resultText;
+        console.debug(cursorOffset);
+
+        // Don't ask why - it just needs to be done this way.
+        let selection = document.getSelection()!;
+        selection.setPosition(selection.anchorNode);
+        selection.setPosition(selection.anchorNode, cursorOffset);
+        selection.extend(
+          selection.anchorNode!,
+          cursorOffset + resultText.length
+        );
+
+        console.debug(selection.anchorOffset);
+
+        setAutocompleteIsPendingApproval(true);
       });
+    }
+    if (event.key != "Delete" && event.key != "Backspace") {
+      if (
+        !document.getSelection()?.isCollapsed &&
+        autocompleteIsPendingApproval
+      ) {
+        if (event.key == "Enter") event.preventDefault();
+        let selection = document.getSelection()!;
+        selection.collapseToEnd();
+        setAutocompleteIsPendingApproval(false);
+      }
     }
   }
 
+  function focusEditor() {
+    if (document.activeElement != editorRef.current) {
+      if (editorRef.current?.innerText == "") {
+        editorRef.current?.focus();
+      }
+    }
+  }
+
+  useEffect(() => {
+    // Focus editor on keypress
+    document.addEventListener("keydown", focusEditor);
+
+    // Don't forget to clean up
+    return function cleanup() {
+      document.removeEventListener("keydown", focusEditor);
+    };
+  }, []);
+
   return (
     <>
-      <p contentEditable onInput={textEntryHandler}></p>
+      <div>
+        <p>Just start typing...</p>
+        <p
+          contentEditable
+          onKeyDown={keyDownHandler}
+          tabIndex={-1}
+          ref={editorRef}
+          style={{
+            outline: "none",
+          }}
+        ></p>
+      </div>
     </>
   );
 }
