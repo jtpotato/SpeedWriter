@@ -1,9 +1,9 @@
 export async function autocomplete(data: any) {
   console.log("Starting autocomplete process");
-  console.debug(JSON.stringify(data))
+  console.log(JSON.stringify(data))
 
   const response = await fetch(
-    "https://api-inference.huggingface.co/models/EleutherAI/gpt-j-6B",
+    "https://api-inference.huggingface.co/models/EleutherAI/gpt-neo-2.7B",
     {
       headers: {
         Authorization: "Bearer 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",
@@ -13,7 +13,7 @@ export async function autocomplete(data: any) {
     }
   );
   const result = await response.json();
-  console.debug(result)
+  console.log(result)
   return result;
 }
 
@@ -35,8 +35,7 @@ export function shouldRunAI(text: string) {
 
 export const autocompleteParameters = {
   return_full_text: false,
-  max_new_tokens: 5,
+  max_new_tokens: 200,
   do_sample: true,
-  temperature: 1.2,
-  repetition_pentalty: 5
+  temperature: 0.9
 };

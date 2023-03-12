@@ -9,86 +9,57 @@ import {
 } from "./ai";
 
 function Home() {
-  const editorRef = useRef<HTMLParagraphElement>(null);
-  const [autocompleteIsPendingApproval, setAutocompleteIsPendingApproval] =
-    useState(false);
+  const promptTypeRef = useRef<HTMLInputElement>(null);
+  const promptIdeasRef = useRef<HTMLTextAreaElement>(null);
+  const starterParagraphRef = useRef<HTMLTextAreaElement>(null);
 
-  function keyDownHandler(event: any) {
-    if (event.key != "Delete" && event.key != "Backspace") {
-      if (
-        !document.getSelection()?.isCollapsed &&
-        autocompleteIsPendingApproval
-      ) {
-        if (event.key == "Enter" || event.key == "Tab") event.preventDefault();
-        let selection = document.getSelection()!;
-        selection.collapseToEnd();
-        setAutocompleteIsPendingApproval(false);
-      }
-    }
-    if (event.key === "Tab") {
-      event.preventDefault();
+  function startGeneration() {
+    let prompt = `This is an ${promptTypeRef.current?.value} about ${promptIdeasRef.current?.value}. The contents are as follows:`;
+    console.log(prompt);
 
-      let cursorOffset = document.getSelection()?.anchorOffset!;
-
-      if (!shouldRunAI(event.target.innerText)) return;
-
-      autocomplete({
-        inputs: cleanText(event.target.innerText),
-        parameters: autocompleteParameters,
-      }).then((result) => {
-        let resultText: string = result[0]["generated_text"];
-        resultText = cleanText(resultText);
-        event.target.innerText += resultText;
-        console.debug(cursorOffset);
-
-        // Don't ask why - it just needs to be done this way.
-        let selection = document.getSelection()!;
-        selection.setPosition(selection.anchorNode);
-        selection.setPosition(selection.anchorNode, cursorOffset);
-        selection.extend(
-          selection.anchorNode!,
-          cursorOffset + resultText.length
-        );
-
-        console.debug(selection.anchorOffset);
-
-        setAutocompleteIsPendingApproval(true);
-      });
-    }
+    autocomplete({
+      inputs: prompt,
+      parameters: autocompleteParameters,
+      options: { use_cache: false },
+    }).then((result) => {
+      console.log(result[0]["generated_text"]);
+      starterParagraphRef.current!.value = result[0]["generated_text"];
+    });
   }
 
-  function focusEditor() {
-    if (document.activeElement != editorRef.current) {
-      if (editorRef.current?.innerText == "") {
-        editorRef.current?.focus();
-      }
-    }
+  function continueGeneration() {
+    autocomplete({
+      inputs: starterParagraphRef.current!.value.slice(-500),
+      parameters: autocompleteParameters,
+      options: { use_cache: false },
+    }).then((result) => {
+      console.log(result[0]["generated_text"]);
+      starterParagraphRef.current!.value += result[0]["generated_text"];
+    });
   }
-
-  useEffect(() => {
-    // Focus editor on keypress
-    document.addEventListener("keydown", focusEditor);
-
-    // Don't forget to clean up
-    return function cleanup() {
-      document.removeEventListener("keydown", focusEditor);
-    };
-  }, []);
 
   return (
     <>
-      <div>
-        <p>Just start typing...</p>
-        <p
-          contentEditable
-          onKeyDown={keyDownHandler}
-          tabIndex={-1}
-          ref={editorRef}
-          style={{
-            outline: "none",
-          }}
-        ></p>
-      </div>
+      <input
+        ref={promptTypeRef}
+        placeholder="This piece is an..."
+        style={{ display: "block", width: "100%" }}
+      ></input>
+      <textarea
+        ref={promptIdeasRef}
+        placeholder="Some ideas that will be covered are..."
+        style={{ display: "block", width: "100%" }}
+      ></textarea>
+
+      <button onClick={startGeneration}>Go!</button>
+
+      <textarea
+        ref={starterParagraphRef}
+        placeholder="Here's what the AI came up with..."
+        style={{ display: "block", width: "100%" }}
+      />
+
+      <button onClick={continueGeneration}>More!</button>
     </>
   );
 }
