@@ -1,2 +1,2 @@
 # SpeedWriter
-Uses EleutherAI/gpt-neox-20b to autocomplete text.
+Uses EleutherAI/gpt-neo-2.7B to autocomplete text.
