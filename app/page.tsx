@@ -19,7 +19,7 @@ function Home() {
         !document.getSelection()?.isCollapsed &&
         autocompleteIsPendingApproval
       ) {
-        if (event.key == "Enter") event.preventDefault();
+        if (event.key == "Enter" || event.key == "Tab") event.preventDefault();
         let selection = document.getSelection()!;
         selection.collapseToEnd();
         setAutocompleteIsPendingApproval(false);
