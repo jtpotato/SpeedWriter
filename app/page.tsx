@@ -14,6 +14,17 @@ function Home() {
     useState(false);
 
   function keyDownHandler(event: any) {
+    if (event.key != "Delete" && event.key != "Backspace") {
+      if (
+        !document.getSelection()?.isCollapsed &&
+        autocompleteIsPendingApproval
+      ) {
+        if (event.key == "Enter") event.preventDefault();
+        let selection = document.getSelection()!;
+        selection.collapseToEnd();
+        setAutocompleteIsPendingApproval(false);
+      }
+    }
     if (event.key === "Tab") {
       event.preventDefault();
 
@@ -43,17 +54,6 @@ function Home() {
 
         setAutocompleteIsPendingApproval(true);
       });
-    }
-    if (event.key != "Delete" && event.key != "Backspace") {
-      if (
-        !document.getSelection()?.isCollapsed &&
-        autocompleteIsPendingApproval
-      ) {
-        if (event.key == "Enter") event.preventDefault();
-        let selection = document.getSelection()!;
-        selection.collapseToEnd();
-        setAutocompleteIsPendingApproval(false);
-      }
     }
   }
 
